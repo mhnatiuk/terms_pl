@@ -4,9 +4,9 @@ from sys import argv
 ## This script calculates TF/IDF value for words in a set of documents
 ## User has to specify: 
 ## 1. A csv-formatted file (';' as separator, '"' as quote),
-## 2. The number of a column which contains words
-## 3. The number of a column which contains the sum of term occurances in a document
-## 4. The number of a column that indicates by which column to aggregate ( a document : 'd' in http://en.wikipedia.org/wiki/TFIDF )
+## 2. The number of a column which contains words (from 1 not 0)
+## 3. The number of a column which contains the sum of term occurances in a document (from 1 not 0)
+## 4. The number of a column that indicates by which column to aggregate ( a document : 'd' in http://en.wikipedia.org/wiki/TFIDF ) (from 1 not 0)
 ## This script writes output to STDOUT
 ##
 
@@ -29,16 +29,21 @@ with open(filename, "r") as csvfile:
 	docfreq = dict() # number of documents where the term T appears
 	termfreq = dict() # term frequency per document
 	for row in reader:
+		#for every TERM, write number of documents where it appears:
 		try:
 			docfreq[row[w_col]] += 1
 		except KeyError:
 			docfreq[row[w_col]] = 1
+		# just keep track of the number of documents:
 		docs[row[a_col]] = 1
+
+		#add word freq to the dictionary of terms in documents
 		key = (row[w_col], row[a_col])  
 		termfreq[key] = int(row[sum_col])
 		
 	D = len(docs) # total no documents
-	dictTFIDF = dict() # wyniki tfidf
+	
+	# calculate and print TF/IDF value:
 	for keys, val in termfreq.iteritems():
 		term = keys[0]
 		doc = keys[1]
