@@ -248,12 +248,14 @@ def _analyse_as_list(text, expand_tags, expand_dot, expand_underscore, keep_whit
         if keep_whitespace:
             libmorfeusz.morfeusz_set_option(MORFOPT_WHITESPACE, MORFEUSZ_SKIP_WHITESPACE)
     def expand_dag(i):
+	#print 'Wartosc i:', i
         nexts = dag[i]
         if not nexts:
             yield []
         else:
             for head, j in nexts:
                 for tail in expand_dag(j):
+	#	    print [head] + tail
                     yield [head] + tail
     return list(expand_dag(0))
 

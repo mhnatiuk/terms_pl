@@ -1,52 +1,61 @@
+#-*- coding: utf-8 -*-
+
 import re
 import morfeusz
 import csv
 import nltk
+from collections import defaultdict
+from sys import stderr
 from sys import argv
 from time import time
 ####################
 def get_word_counts(text):
-	words = dict()
-	tokens = nltk.wordpunct_tokenize(text.decode('utf8'))
-	for word in tokens:
-		res =  morfeusz.analyse(word)
-		tup = res.pop().pop()
-		#list.append(tup[1])
-		if tup[1]:
+	words = defaultdict(int)
+	tokens = nltk.wordpunct_tokenize(text)
+	for word in tokens: # for every word in given text -> lemmatize & count
+		word = re.sub(r'[_+=:;"\'\?/>.<,\\]',' ',word)
+		if len(word) > 1:
+			#print word.encode('utf8')
+			res =  morfeusz.analyse(word,expand_tags=False,dag=True) # morfological analyzer for Polish
 			try:
-				words[tup[1]] = words[tup[1]] + 1
-			except KeyError:
-				words[tup[1]] = 1
-		else:
-			pass
+				base = res[0][2][1]
+			except IndexError:
+				base = None
+			#list.append(tup[1])
+			if base is not None:
+				words[base] += 1 # increment the word count
+			else:
+				pass
 	return words
 
 #################
+def unicode_csv_reader(utf8_data, dialect=csv.excel, **kwargs):
+    csv_reader = csv.reader(utf8_data, dialect=dialect, **kwargs)
+    for row in csv_reader:
+        yield [unicode(cell, 'utf-8') for cell in row]
+#############################################################3
+
 try:
-	sname, fname = argv
+	sname, fname, column = argv
 except ValueError:
 	quit("Err: pass a filename.")
 
-with open(fname, "r") as csvfile:
-	reader = csv.reader(csvfile,delimiter=';',quotechar='"')
-	start = time()
-	for row in reader:
-		try:
-			rows_returned = get_word_counts(row[6])
-		except IndexError:
-			print "Woooooow %r" % (row)
-			quit()
+column = int(column)
 
+with open(fname, "r") as csvfile:
+	reader = unicode_csv_reader(csvfile,delimiter=';',quotechar='"')
+	start = time()
+	i= 0
+	for row in reader:
+		
+		if i % 1000 == 0:
+			print >> stderr, "%d rows read in %f" % (i, time() -start)
+		i += 1
+		rows_returned = get_word_counts(row[column])
 		for k,v in rows_returned.iteritems():
-#			print "%s;%s;%s;\"%s\";\"%s\";\"%s\";%s;%s" % (row[0],row[1],row[2].decode("utf8"),row[3].decode("utf8"),row[4].decode("utf8"),row[5].decode("utf8"),k,v)
-			text = row[0]+ ";" + row[1] + ";" +row[2]
-			text = text + ";\"" + row[3] + "\";\"" + row[4] + "\";\"" + row[5] + "\";\""
-			try:
-				text = text +  k.encode("utf8") + "\";" + str(v)
-			except AttributeError:
-				print k
-				quit()
-			print text
+			out = '"' + '";"'.join(row[:column]  ) + '";' +  u'"' + k + u'";"' + unicode(v) + '"'
+			print out.encode('utf8')
+	
 	end = time()
 #	print "Exec time: %r"% (end - start)
 
